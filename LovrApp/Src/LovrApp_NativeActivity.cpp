@@ -1267,6 +1267,53 @@ Native Activity
 
 ================================================================================
 */
+uint getUnicodeChar(struct android_app *app, int eventType, uint keyCode, int metaState) 
+{
+	ovrJava java;
+	java.Vm = app->activity->vm;
+  jint result = java.Vm->AttachCurrentThread(&java.Env, NULL);
+
+  jclass class_key_event = java.Env->FindClass("android/view/KeyEvent");
+  uint   unicodeKey;
+
+  jmethodID method_get_unicode_char = java.Env->GetMethodID(class_key_event, "getUnicodeChar", "(I)I");
+  jmethodID eventConstructor = java.Env->GetMethodID(class_key_event, "<init>", "(II)V");
+  jobject eventObj = java.Env->NewObject(class_key_event, eventConstructor, eventType, keyCode);
+  unicodeKey = (uint)java.Env->CallIntMethod(eventObj, method_get_unicode_char, metaState);
+  
+  java.Vm->DetachCurrentThread();
+  return unicodeKey;
+}
+
+/**
+ * Process the next input event. This could happen if for example a bluetooth keyboard is attached
+ */
+static int32_t app_handle_input( struct android_app * app, AInputEvent * event )
+{
+	ovrApp * appState = (ovrApp *)app->userData;
+
+	int32_t eventType = AInputEvent_getType(event);
+	if (eventType == AINPUT_EVENT_TYPE_KEY)
+	{
+		int32_t action = AKeyEvent_getAction(event);
+		int32_t keyCode = AKeyEvent_getKeyCode(event);
+		int32_t repeatCount = AKeyEvent_getRepeatCount(event);
+		int32_t metaState = AKeyEvent_getMetaState(event);
+		ALOGV("Received key event, key: %d, action: %d, repeat: %d\n", keyCode, action, repeatCount);
+		if (action == AKEY_EVENT_ACTION_DOWN) {
+			if (repeatCount == 0) {
+				bridgeKeyEvent(BRIDGE_LOVR_KEYPRESS, keyCode);
+			}
+			int32_t uniValue = getUnicodeChar(app, AKEY_EVENT_ACTION_DOWN, keyCode, metaState);
+			ALOGV("Unicode: %c\n", (char) uniValue);
+			bridgeKeyEvent(BRIDGE_LOVR_TEXTINPUT, uniValue);
+		} else if (action == AKEY_EVENT_ACTION_UP) {
+			bridgeKeyEvent(BRIDGE_LOVR_KEYRELEASE, keyCode);
+  	}
+  	return 1;
+	}
+	return 0; // not handled
+}
 
 /**
  * Process the next main command.
@@ -1388,6 +1435,7 @@ void android_main( struct android_app * app )
 
 	app->userData = &appState;
 	app->onAppCmd = app_handle_cmd;
+	app->onInputEvent = app_handle_input;
 
 	const double startTime = GetTimeInSeconds();
 
