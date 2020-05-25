@@ -1304,9 +1304,9 @@ static int32_t app_handle_input( struct android_app * app, AInputEvent * event )
 			if (repeatCount == 0) {
 				bridgeKeyEvent(BRIDGE_LOVR_KEYPRESS, keyCode);
 			}
-			int32_t uniValue = getUnicodeChar(app, AKEY_EVENT_ACTION_DOWN, keyCode, metaState);
-			ALOGV("Unicode: %c\n", (char) uniValue);
-			bridgeKeyEvent(BRIDGE_LOVR_TEXTINPUT, uniValue);
+			//int32_t uniValue = getUnicodeChar(app, AKEY_EVENT_ACTION_DOWN, keyCode, metaState);
+			//ALOGV("Unicode: %c\n", (char) uniValue);
+			//bridgeKeyEvent(BRIDGE_LOVR_TEXTINPUT, uniValue);
 		} else if (action == AKEY_EVENT_ACTION_UP) {
 			bridgeKeyEvent(BRIDGE_LOVR_KEYRELEASE, keyCode);
   	}
@@ -1506,7 +1506,7 @@ void android_main( struct android_app * app )
 			vrapi_SubmitFrame2( appState.Ovr, &frameDesc );
 #endif
 
-			bridgeData.writablePath = app->activity->internalDataPath;
+			bridgeData.writablePath = app->activity->externalDataPath;
 
 			std::string apkPath = ovr_GetPackageCodePath(java.Env, java.ActivityObject);
 			bridgeData.apkPath = apkPath.c_str();
